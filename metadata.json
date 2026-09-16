@@ -1,0 +1,6 @@
+{
+  "name": "MegniToo AI Portfolio Builder & Verifier",
+  "description": "Automated evaluation of ML repositories, live deployment verification, and W3C tamper-proof digital credential issuance with employer verification portal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

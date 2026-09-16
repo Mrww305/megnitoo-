@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: megnito-postgres
+    environment:
+      POSTGRES_DB: megnitoo_db
+      POSTGRES_USER: megnito_user
+      POSTGRES_PASSWORD: megnito_secure_password_2026
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U megnito_user -d megnitoo_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: megnito-redis
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: megnito-fastapi
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DATABASE_URL: postgresql://megnito_user:megnito_secure_password_2026@postgres:5432/megnitoo_db
+      REDIS_URL: redis://redis:6379/0
+      MEGNI_ISSUER_SEED: "megnitoo-production-key-secret-seed-2026"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: megnito-celery
+    command: celery -A analyzer.celery_app worker --loglevel=info --concurrency=4
+    environment:
+      DATABASE_URL: postgresql://megnito_user:megnito_secure_password_2026@postgres:5432/megnitoo_db
+      REDIS_URL: redis://redis:6379/0
+      MEGNI_ISSUER_SEED: "megnitoo-production-key-secret-seed-2026"
+    depends_on:
+      - redis
+      - postgres
+
+volumes:
+  pgdata:
